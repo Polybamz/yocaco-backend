@@ -1,37 +1,44 @@
 import  {admin, db} from '../../config/config.js';
 
+
 class AdminAuthController {
    static async login(req, res) {
         const { email, password } = req.body;
 
-        const user = await db.collection(' admin_users ').findOne({ email });
+        const user = await admin.auth().getUserByEmail(email);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
-
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(401).json({ message: 'Invalid credentials' });
+        const validPassword = await admin.auth().verifyPassword(user.uid, password);
+        if (!validPassword) {
+            return res.status(401).json({ message: 'Invalid password' });
         }
         
-        const token = await admin.auth().createCustomToken(user._id.toString());
-        const data = await this.getAdminUserById(user._id.toString());
+        const token = await admin.auth().createCustomToken(user.uid);
+        const data = await this.getAdminUserById(user.uid);
+      
         return res.status(200).json({ token:token, user: data });
     }
     static async createAdminUser(req, res) {
-    const { email, password, role } = req.body;
+    const { email, password, role, fullName,  } = req.body;
     try {
-        const existingUser = await db.collection('admin_users').findOne({ email });
-        if (existingUser) {
+        const response = await admin.auth().createUser({
+            email: email,
+            password: password,
+
+            emailVerified: true,   
+            }); 
+        const existingUser = await db.collection('admin_users').where('email', '==', email).get();
+        if (!existingUser.empty) {
             return res.status(400).json({ message: 'User already exists' });
         }
-        const hashedPassword = await bcrypt.hash(password, 10);
+        //const hashedPassword = await bcrypt.hash(password, 10);
         const user = {
             email,
-            password: hashedPassword,
+            fullName,
             role
         };
-        await db.collection('admin_users').add(user);
+        await db.collection('admin_users').doc(response.uid).set(user);
         return res.status(201).json({ message: 'User created successfully' });
     } catch (error) {
         console.log(error);
