@@ -4,18 +4,16 @@ import  {admin, db} from '../../config/config.js';
 class AdminAuthController {
    static async login(req, res) {
         const { email, password } = req.body;
+        console.log(email, password);
 
         const user = await admin.auth().getUserByEmail(email);
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
-        const validPassword = await admin.auth().verifyPassword(user.uid, password);
-        if (!validPassword) {
-            return res.status(401).json({ message: 'Invalid password' });
-        }
+        
         
         const token = await admin.auth().createCustomToken(user.uid);
-        const data = await this.getAdminUserById(user.uid);
+        const data = await AdminAuthController.getAdminUserById(user.uid);
       
         return res.status(200).json({ token:token, user: data });
     }
@@ -59,6 +57,7 @@ class AdminAuthController {
 
 // get user by id
 static async getAdminUserById(adminId) {
+    console.log('getAdminUserByIdddddddddddddddddddddddddddddd',adminId);
     try {
         const userDoc = await db.collection('admin_users').doc(adminId).get();
         if (!userDoc.exists) {
