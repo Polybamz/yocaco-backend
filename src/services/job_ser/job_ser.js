@@ -21,12 +21,40 @@ class JobsService {
         try {
             const jobsSnapshot = await db.collection('jobs').get();
             const jobs = [];
+            const jobsdistribution = {
+                "full-time": 0, 
+                'part-time': 0,
+                'contract': 0,
+                'internship': 0,
+                'temporary': 0
+            };
             jobsSnapshot.forEach(doc => {
                 jobs.push(doc.data());
             });
-            return jobs;
+            // UPDATING JOB DISTRIBUTION
+            jobs.forEach(job => {
+                if (jobsdistribution[job.type] !== undefined) {
+                    jobsdistribution[job.type] += 1;
+                }
+            });
+            // JOB DISTRIBUTION IN LAST SIX MONTHS FROM CURRENT DATE
+            const jobsdistributionInLastSixMonths = {}
+            const currentDate = new Date();
+            for (let i = 0; i < 6; i++) {
+                const month = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+                const jobsInMonth = jobs.filter(job => {
+                    const jobDate = new Date(job.createdAt);
+                    return jobDate.getMonth() === month.getMonth() && jobDate.getFullYear() === month.getFullYear();
+                });
+                // COUNT PER MONTH
+                jobsdistributionInLastSixMonths[month.toLocaleString('default', { month: 'long', year: 'numeric' })] = jobsInMonth.length;
+            }
+            const jobsCount = jobs.length;
+            const activeJobsCount = jobs.filter(job => job.status === 'active').length;
+            // console.log("Jobs Distribution in Last Six Months:", jobsdistributionInLastSixMonths);
+            return {JOBS: jobs, jobsdistribution: jobsdistribution, jobsdistributionInLastSixMonths: jobsdistributionInLastSixMonths, jobsCount: jobsCount, activeJobsCount: activeJobsCount  };
             } catch (error) {
-            console.error("Error fetching jobs:", error);
+            // console.error("Error fetching jobs:", error);
             throw new Error(error);
         }
         }   
