@@ -33,13 +33,19 @@ class JobController {
     }
     static async updateJobStatus(req, res) {
         try {
-            const { jobId } = req.params;
-            const { status } = req.body;
+            const  { id:jobId } = req.params;
+            console.log("For job ID:", jobId);
+            console.log("Request body:", req.body);
+            const  status  = req.body.status;
+            console.log("Updating job status to:", status);
+            
             const job = await JobsService.updateJobStatus(jobId, status);
             if (!job) return res.status(404).json({ message: "Job not found" });
             return res.status(200).json({ message: "Job status updated successfully" });
         } catch (error) {
-            return res.status(500).json({ message: "Internal Server Error" });
+            return res.status(500).json({
+                error: error.message,
+                message: "Internal Server Error" });
         }
     }
     static async updateJob(req, res) {
