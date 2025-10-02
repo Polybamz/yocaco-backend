@@ -29,7 +29,7 @@ class JobsService {
                 'temporary': 0
             };
             jobsSnapshot.forEach(doc => {
-                jobs.push(doc.data());
+                jobs.push({...doc.data(), id: doc.id});
             });
             // UPDATING JOB DISTRIBUTION
             jobs.forEach(job => {
