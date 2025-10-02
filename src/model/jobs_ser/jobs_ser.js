@@ -14,7 +14,7 @@ import Joi from "joi";
         applyLink: Joi.string().allow(null),
         expiryDate: Joi.date().required(),
         status: Joi.string().valid('pending', 'approved', 'denied', 'expired').required(),
-        employerId: Joi.string().required(),
+        employerId: Joi.string().allow(null,'',""),
         boosted: Joi.boolean().allow(null),
         boostedUntil: Joi.date().allow(null),
     });
