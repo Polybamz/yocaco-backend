@@ -50,7 +50,7 @@ class JobsService {
                 jobsdistributionInLastSixMonths[month.toLocaleString('default', { month: 'long', year: 'numeric' })] = jobsInMonth.length;
             }
             const jobsCount = jobs.length;
-            const activeJobsCount = jobs.filter(job => job.status === 'active').length;
+            const activeJobsCount = jobs.filter(job => job.status === 'approved').length;
             // console.log("Jobs Distribution in Last Six Months:", jobsdistributionInLastSixMonths);
             return {JOBS: jobs, jobsdistribution: jobsdistribution, jobsdistributionInLastSixMonths: jobsdistributionInLastSixMonths, jobsCount: jobsCount, activeJobsCount: activeJobsCount  };
             } catch (error) {
