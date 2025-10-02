@@ -82,10 +82,7 @@ static logoutUser = async (req, res) => {
         return res.status(500).json({ message: 'Error logging out', error: error.message });
     }
 }
-static createAdmin = async (req, res) => {}
-static updateUser = async (req, res) => {
 
-}
    static verifyToken = async (req, res, next) => {
         try {
             const token = req.headers.authorization?.split(' ')[1];
@@ -98,6 +95,23 @@ static updateUser = async (req, res) => {
         } catch (error) {
             console.log(error);
             return res.status(401).json({ message: 'Invalid token' });
+        }
+    }
+
+    static getAllUsers = async (req, res) => {
+        try {
+            const users = [];
+            const userDocs = await db.collection('users').get();
+            userDocs.forEach((doc) => {
+                const user = doc.data();
+                users.push(user);
+            });
+            const employers = users.filter(user => user.userType === 'employer');
+            const jobseekers = users.filter(user => user.userType === 'jobseeker');
+            return res.status(200).json({ success: true, users: users, employers: employers, jobseekers: jobseekers });
+        } catch (error) {
+            console.log(error);
+            return res.status(500).json({ success:false, message: 'Error fetching users', error: error.message });
         }
     }
 };
