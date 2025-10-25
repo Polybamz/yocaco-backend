@@ -1,203 +1,111 @@
 import dotenv from 'dotenv';
+import { db, admin } from '../../config/config.js'; // Firestore config
+import Flutterwave from 'flutterwave-node-v3';
+
 dotenv.config();
-const Flutterwave = require('flutterwave-node-v3');
+
 const flw = new Flutterwave(
   process.env.FLW_PUBLIC_KEY,
   process.env.FLW_SECRET_KEY
 );
 
 class PaymentService {
-  /**
-   * Adds extra metadata to payment data for webhook identification.
-   * @param {object} paymentData
-   * @param {object} meta
-   */
+  constructor(firestore = db) {
+    this.db = firestore.collection('payments');
+  }
+
   _addMeta(paymentData, meta) {
-    return {
-      ...paymentData,
-      meta: {
-        ...paymentData.meta,
-        ...meta,
-      },
-    };
+    return { ...paymentData, meta: { ...paymentData.meta, ...meta } };
   }
 
   /**
-   * Initiates a card payment.
-   * @param {object} paymentData - The payment details.
-   * @param {object} meta - Extra data for webhook identification.
-   */
-  async initiateCardPayment(paymentData, meta = {}) {
-    try {
-      const data = this._addMeta(paymentData, meta);
-      const response = await flw.Charge.card(data);
-      return response;
-    } catch (error) {
-      console.error('Error initiating card payment:', error);
-      throw new Error('Failed to initiate card payment.');
-    }
-  }
-
-  /**
-   * Initiates a bank transfer payment.
+   * Initialize a payment — supports various types
+   * @param {'card'|'bank_transfer'|'ussd'|'mobilemoney'|'orangemoney'|'airtellmoney'|'mobilemoneygh'|'mpesa'|'mobilemoneyfranco'} type
    * @param {object} paymentData
    * @param {object} meta
    */
-  async initiateBankTransferPayment(paymentData, meta = {}) {
+  async initiatePayment(type, paymentData, meta = {}) {
     try {
       const data = this._addMeta(paymentData, meta);
-      const response = await flw.Charge.bank_transfer(data);
+      const method = flw.Charge[type];
+
+      if (!method) throw new Error(`Unsupported payment type: ${type}`);
+
+      const response = await method(data);
+
+      // ✅ Save initial payment record to Firestore
+      await this.db.doc(data.tx_ref).set({
+        txRef: data.tx_ref,
+        amount: data.amount,
+        currency: data.currency || 'XAF',
+        type,
+        status: 'PENDING',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        meta,
+      });
+
       return response;
     } catch (error) {
-      console.error('Error initiating bank transfer payment:', error);
-      throw new Error('Failed to initiate bank transfer payment.');
+      console.error(`Error initiating ${type} payment:`, error.message);
+      throw new Error('Payment initiation failed.');
     }
   }
 
-  /**
-   * Initiates a USSD payment.
-   * @param {object} paymentData
-   * @param {object} meta
-   */
-  async initiateUSSDPayment(paymentData, meta = {}) {
-    try {
-      const data = this._addMeta(paymentData, meta);
-      const response = await flw.Charge.ussd(data);
-      return response;
-    } catch (error) {
-      console.error('Error initiating USSD payment:', error);
-      throw new Error('Failed to initiate USSD payment.');
-    }
-  }
-
-  /**
-   * Initiates a mobile money payment.
-   * @param {object} paymentData
-   * @param {object} meta
-   */
-  async initiateMobileMoneyPayment(paymentData, meta = {}) {
-    try {
-      const data = this._addMeta(paymentData, meta);
-      const response = await flw.Charge.mobilemoney(data);
-      return response;
-    } catch (error) {
-      console.error('Error initiating mobile money payment:', error);
-      throw new Error('Failed to initiate mobile money payment.');
-    }
-  }
-
-  /**
-   * Initiates an Orange Money payment.
-   * @param {object} paymentData
-   * @param {object} meta
-   */
-  async initiateOrangeMoneyPayment(paymentData, meta = {}) {
-    try {
-      const data = this._addMeta(paymentData, meta);
-      const response = await flw.Charge.orangemoney(data);
-      return response;
-    } catch (error) {
-      console.error('Error initiating Orange Money payment:', error);
-      throw new Error('Failed to initiate Orange Money payment.');
-    }
-  }
-
-  /**
-   * Initiates an Airtel Money payment.
-   * @param {object} paymentData
-   * @param {object} meta
-   */
-  async initiateAirtelMoneyPayment(paymentData, meta = {}) {
-    try {
-      const data = this._addMeta(paymentData, meta);
-      const response = await flw.Charge.airtellmoney(data);
-      return response;
-    } catch (error) {
-      console.error('Error initiating Airtel Money payment:', error);
-      throw new Error('Failed to initiate Airtel Money payment.');
-    }
-  }
-
-  /**
-   * Initiates a Ghana Mobile Money payment.
-   * @param {object} paymentData
-   * @param {object} meta
-   */
-  async initiateGhanaMobileMoneyPayment(paymentData, meta = {}) {
-    try {
-      const data = this._addMeta(paymentData, meta);
-      const response = await flw.Charge.mobilemoneygh(data);
-      return response;
-    } catch (error) {
-      console.error('Error initiating Ghana Mobile Money payment:', error);
-      throw new Error('Failed to initiate Ghana Mobile Money payment.');
-    }
-  }
-
-  /**
-   * Initiates a Mpesa payment.
-   * @param {object} paymentData
-   * @param {object} meta
-   */
-  async initiateMpesaPayment(paymentData, meta = {}) {
-    try {
-      const data = this._addMeta(paymentData, meta);
-      const response = await flw.Charge.mpesa(data);
-      return response;
-    } catch (error) {
-      console.error('Error initiating Mpesa payment:', error);
-      throw new Error('Failed to initiate Mpesa payment.');
-    }
-  }
-
-  /**
-   * Initiates a Francophone Mobile Money payment.
-   * @param {object} paymentData
-   * @param {object} meta
-   */
-  async initiateFrancophoneMobileMoneyPayment(paymentData, meta = {}) {
-    try {
-      const data = this._addMeta(paymentData, meta);
-      const response = await flw.Charge.mobilemoneyfranco(data);
-      return response;
-    } catch (error) {
-      console.error('Error initiating Francophone Mobile Money payment:', error);
-      throw new Error('Failed to initiate Francophone Mobile Money payment.');
-    }
-  }
-
-  /**
-   * Verifies a transaction using its ID.
-   * @param {string} transactionId - The transaction ID.
-   */
   async verifyTransaction(transactionId) {
     try {
       const response = await flw.Transaction.verify({ id: transactionId });
       return response;
     } catch (error) {
-      console.error('Error verifying transaction:', error);
-      throw new Error('Failed to verify transaction.');
+      console.error('Error verifying transaction:', error.message);
+      throw new Error('Transaction verification failed.');
     }
   }
 
   /**
-   * Handles Flutterwave webhook events.
-   * @param {object} req - Express request object.
-   * @param {object} res - Express response object.
+   * Flutterwave webhook handler.
    */
   async handleWebhook(req, res) {
-    // Optionally, verify signature here for security
+    const secretHash = process.env.FLW_SECRET_HASH;
+    const signature = req.headers['verif-hash'];
+
+    if (!signature || signature !== secretHash) {
+      console.warn('Unauthorized webhook attempt');
+      return res.status(401).send('Unauthorized');
+    }
+
     const event = req.body;
-    // You can use event.data.meta to identify what the payment was for
+    const { id, tx_ref, status, amount, currency, meta } = event.data;
+
     try {
-      // Process event based on event.type or event.data.status
-      // Example: if (event.event === 'charge.completed') { ... }
+      const paymentRef = this.db.doc(tx_ref);
+
+      if (event.event === 'charge.completed' && status === 'successful') {
+        // ✅ Update successful payment
+        await paymentRef.update({
+          status: 'SUCCESS',
+          transactionId: id,
+          amount,
+          currency,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        console.log(`✅ Payment successful for ${tx_ref}`);
+      } else if (status === 'failed') {
+        // ❌ Mark failed payment
+        await paymentRef.update({
+          status: 'FAILED',
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
+        console.warn(`❌ Payment failed for ${tx_ref}`);
+      }
+
       res.status(200).send('Webhook received');
     } catch (error) {
-      console.error('Error handling webhook:', error);
-      res.status(500).send('Webhook error');
+      console.error('Error processing webhook:', error.message);
+      res.status(500).send('Internal webhook error');
     }
   }
 }
 
-module.exports = PaymentService;
+export default PaymentService;

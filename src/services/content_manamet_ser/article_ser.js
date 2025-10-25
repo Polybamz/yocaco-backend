@@ -25,7 +25,7 @@ class ArticleSer {
             const articlesDocs = await articlesRef.get();
             const articles = [];
             articlesDocs.forEach((doc) => {
-                articles.push(doc.data());
+                articles.push({...doc.data(), id:doc.id});
             });
             return articles;
         } catch (error) {
