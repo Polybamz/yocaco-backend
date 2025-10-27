@@ -3,7 +3,8 @@ import banner from "../../../services/content_manamet_ser/banner.js";
 class BannerController {
  static async createBanner(req, res) {
     try {
-      const { bannerData } = req.body;
+      const  bannerData  = req.body;
+      console.log(bannerData);
       const bannerDoc = await banner.createBanner(bannerData);
       return res.status(201).json({
         message: "Banner created successfully",
@@ -79,6 +80,7 @@ static  async getActiveBanners(req, res) {
  static async deleteBanner(req, res) {
     try {
       const { id } = req.params;
+      console.log('idddddddddddd',id)
       const bannerDoc = await banner.deleteBanner(id);
       if (!bannerDoc) {
         return res.status(404).json({ message: "Banner not found" });

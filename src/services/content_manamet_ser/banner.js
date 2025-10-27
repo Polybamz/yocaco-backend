@@ -1,4 +1,5 @@
 import { db, admin } from "../../config/config.js";
+import schedule from "node-schedule";
 
 /**
  * Service class for interacting with the 'banners' Firestore collection.
@@ -10,6 +11,8 @@ import { db, admin } from "../../config/config.js";
  * altText: string,
  * displayOrder: number,
  * isActive: boolean
+ * startDare: Date,
+ * numberOfDaye:number
  * }
  */
 class BannerService {
@@ -38,16 +41,25 @@ class BannerService {
    * @param {object} data The banner data to save.
    * @returns {Promise<string>} The ID of the newly created document.
    */
-  async createBanner(data) {
-    try {
-      const docRef = await this.collectionRef.add(data);
-      return docRef.id;
-    } catch (error) {
-      console.error("Error creating banner:", error);
-      // Throw the error so the caller can handle it (e.g., return 500)
-      throw new Error("Failed to create banner.");
-    }
+ async createBanner(data) {
+  try {
+    // Expect data.startDate (as ISO string or Date) and data.numberOfDays (integer)
+    const startDate = new Date(data.startDate);
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + (data.numberOfDays || 0)); // Add the given number of days
+
+    const docRef = await this.collectionRef.add({
+      ...data,
+      endDate: endDate.toISOString(), // Store in ISO format
+    });
+
+    return docRef.id;
+  } catch (error) {
+    console.error("Error creating banner:", error);
+    throw new Error(error.message || "Failed to create banner.");
   }
+}
+
 
   /**
    * Retrieves all active banners, typically for the client-facing front end.
@@ -131,11 +143,39 @@ class BannerService {
     try {
       await this.collectionRef.doc(id).delete();
       // No need to return true/false; successful completion is implicitly 'true'
+      return true;
     } catch (error) {
       console.error(`Error deleting banner with ID ${id}:`, error);
       throw new Error(`Failed to delete banner with ID: ${id}`);
     }
   }
+
+  // update active status of banner based on current date and end date 
+  async updateBannerActiveStatus() {
+    try {
+      const snapshot = await this.collectionRef.get();
+      const currentDate = new Date();
+      const batch = db.batch();
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const endDate = new Date(data.endDate);
+        const isActive = currentDate <= endDate;
+        if (data.isActive!== isActive) {
+          batch.update(doc.ref, { isActive });
+        }
+      });
+
+      return batch.commit();
+    } catch (error) {
+      console.error("Error updating banner active status:", error);
+      throw new Error("Failed to update banner active status.");
+    }
+  }
+
+  // Schedule the active status update to run daily at midnight
+ 
+
 }
 
 export default new BannerService();

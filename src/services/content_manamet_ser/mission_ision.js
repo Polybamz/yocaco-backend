@@ -8,6 +8,7 @@ class MissionVisionService {
 
   // ---------- CREATE ----------
   async createAll({ mission, vision, coreValues = [] }) {
+    console.log("Creating mission, vision, and core values:", { mission, vision, coreValues });
     return this.docRef.set({
       MISSION: mission,
       VISSION: vision,
