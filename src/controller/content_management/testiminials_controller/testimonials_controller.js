@@ -1,5 +1,5 @@
-import TestimonialsService from "../../../services/content_manamet_ser/testimonials_ser.js";
 import testimonialSchema from "../../../model/content_management_model/testimonials_model.js";
+import TestimonialsService from "../../../services/content_manamet_ser/testimonials_ser.js";
 
 
 class TestimonialController {
@@ -7,8 +7,9 @@ static addTestimonial = async (req, res) => {
     try {
         const data = req.body
         const {error, value} = testimonialSchema.validate(data)
+        console.log("Validation result:", {error, value});
         if(error) throw Error(error);
-     const result =  await TestimonialsService.addTestimonial(value)
+     const result =  await TestimonialsService.addTestimonial(value);
      return res.status(200).json({success: true, data:result})
     } catch (er){
         console.log(er)
@@ -20,7 +21,7 @@ static addTestimonial = async (req, res) => {
 ///  get testimonials 
 static getTestimonials = async (req,res) => {
     try {
-        const result = await TestimonialsService.getTestimonials();
+        const result = await TestimonialsService.getAllTestimonials();
         return res.status(200).json({
             success:true,
             data:result
@@ -41,7 +42,7 @@ static updateTestimonials = async (req, res) => {
     try {
          const {error, value} = testimonialSchema.validate(data)
          if(error) throw new Error(error)
-          const result =  await TestimonialsService.updateTestimonials(id, value);
+          const result =  await TestimonialsService.updateTestimonial(id, value);
         return res.status(200).json({
             success:true,
             message: 'Testimonial updated successfully',
@@ -61,7 +62,7 @@ static updateTestimonials = async (req, res) => {
 static async deleteTestimonials(req,res){
     try{
         const {id} = req.params
-      const result =  await TestimonialsService.deleteTestimonials(id)
+      const result =  await TestimonialsService.deleteTestimonial(id);
       return res.status(200).json({
         success:true,
         data:result

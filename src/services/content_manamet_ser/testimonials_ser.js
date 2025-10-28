@@ -3,6 +3,7 @@ import { db,admin } from "../../config/config.js";
 
 class TestimonialsService {
   async addTestimonial(testimonialData) {
+    console.log("Adding testimonial:", testimonialData);
   try {
   const testimonialRef = db.collection('testimonials').doc();
     await testimonialRef.set(testimonialData);
@@ -57,6 +58,6 @@ class TestimonialsService {
   }
 }
 
-export default TestimonialsService;
+export default new TestimonialsService;
 
  

@@ -7,7 +7,7 @@ const router = express.Router();
 router.post('/create-testimonials', TestimonialController.addTestimonial);
 router.get('/get-testimonials', TestimonialController.getTestimonials);
 router.delete('/delete-testimonials/:id', TestimonialController.deleteTestimonials)
-router.put('update-testimonials/:id', TestimonialController.updateTestimonials);
+router.put('/update-testimonials/:id', TestimonialController.updateTestimonials);
 
 
 export default router;
