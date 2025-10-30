@@ -34,7 +34,7 @@ const articleSchema = Joi.object({
 
     // Image: An array of strings (URLs). Allows null or an empty array.
     image: Joi.array()
-        .items(Joi.string().uri()) // Ensures items are strings and valid URIs
+        .items(Joi.object()) // Ensures items are strings and valid URIs
         .allow(null)
         .default([]),
 

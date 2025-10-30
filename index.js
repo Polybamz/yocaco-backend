@@ -10,6 +10,7 @@ import paymentRoute from './src/controller/payment_controller/p_controller.js';
 import testimonialsRouter from './src/routes/contenct_management/testimonials_route.js';
 import bannerRouter from './src/routes/contenct_management/bannar_route.js';
 import mvcRouter from './src/routes/contenct_management/mission_vision_route.js'
+import cloudinaryRouter from './src/routes/cloudinary_route/cloudinary_route.js'
 const app = express();
 dotenv.config();
 const PORT = process.env.PORT || 5000;
@@ -31,7 +32,8 @@ app.use('/api/article', articleRouter);
 app.use('/api/payment', paymentRoute);
 app.use('/api/testimonials', testimonialsRouter);
 app.use('/api/banner', bannerRouter);
-app.use('/api/mvc', mvcRouter)
+app.use('/api/mvc', mvcRouter);
+app.use('/api/cloudinary', cloudinaryRouter);
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });

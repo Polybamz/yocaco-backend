@@ -72,7 +72,19 @@ class JobController {
             return res.status(500).json({ message: "Internal Server Error" });
         }
     }
-
+// get job by status
+static async getJobsByStatus(req, res) {
+    try {
+        const { status } = req.params;
+        console.log("Getting jobs by status:", status);
+        const jobs = await JobsService.getJobByStatus(status);
+        console.log(`Found ${jobs} jobs with status ${status}`);
+        if (!jobs || jobs.length === 0) return res.status(404).json({ message: "No jobs found for this status" });
+        return res.status(200).json(jobs);
+    } catch (error) {
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+}
 }
 
 export default JobController;

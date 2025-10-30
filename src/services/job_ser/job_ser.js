@@ -110,7 +110,45 @@ class JobsService {
             throw new Error(error);
         }
     }
-   
+
+    // update status after expired date
+   static  updateExpiredJobsStatus = async () => {
+        try {
+            const currentDate = new Date();
+            const jobsSnapshot = await db.collection('jobs').where('status', 'in', ['approved', 'pending']).get();
+            const batch = db.batch();
+            jobsSnapshot.forEach(doc => {
+                const job = doc.data();
+                const jobDate = new Date(job.expiryDate);
+                if (jobDate < currentDate) {
+                    const jobRef = db.collection('jobs').doc(doc.id);
+                    batch.update(jobRef, { status: 'expired', updatedAt: new Date().toISOString() });
+                }
+
+            })
+            // return number of updated jobs
+            await batch.commit();
+            return jobsSnapshot.size;
+        } catch (error) {
+            console.error("Error updating expired jobs status:", error);
+            throw new Error(error);
+        }
+   }
+   // get jobs by status
+   static getJobByStatus = async (status) => {
+    console.log("statussssssssssssssssssss", status);
+        try {
+            const jobsSnapshot = await db.collection('jobs').where('status', '==', status).get();
+            const jobs = [];
+            jobsSnapshot.forEach(doc => {
+                jobs.push(doc.data());
+                });
+            return jobs;
+        } catch (error) {
+            console.error("Error fetching jobs by status:", error);
+            throw new Error(error);
+        }
+   }
 
 }
 

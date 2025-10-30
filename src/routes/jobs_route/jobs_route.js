@@ -1,6 +1,7 @@
 import express from 'express';
 import JobController from '../../controller/jobs_controller/job_controller.js';
-import { protect } from '../../middleWare/auth_mw.js/auth_mw.js';
+import JobsService from '../../services/job_ser/job_ser.js';
+import { scheduleJob } from 'node-schedule';
 const router = express.Router();
 
 router.post('/createJob',  JobController.createJob);
@@ -9,5 +10,11 @@ router.delete('/deleteJobById/:id', JobController.deleteJobById);
 router.put('/updateJobStatus/:id',  JobController.updateJobStatus);
 router.put('/updateJob/:id',  JobController.updateJob);
 router.get('/get-job-by-employer-id/:id', JobController.getJobByEmployerId);
-
+router.get('/get-job-by-status/:status', JobController.getJobsByStatus);
+// Schedule a job every 2 hours to update expired jobs status
+const job = scheduleJob('*/2 * * * *', async () => {
+    console.log('Running scheduled job to update expired jobs status');
+    const result = await JobsService.updateExpiredJobsStatus();
+    console.log(`Scheduled job completed. Updated ${result.length} jobs.`);
+});
 export default router;
