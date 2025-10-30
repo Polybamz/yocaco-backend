@@ -64,8 +64,9 @@ class JobController {
 
     static async getJobByEmployerId(req, res) {
         try {
-            const { employerId } = req.params;
-            const jobs = await JobsService.getJobByEmployerId(employerId);
+            const { id } = req.params;
+            console.log("Getting jobs by employer ID:", id);
+            const jobs = await JobsService.getJobByEmployerId(id);
             if (!jobs || jobs.length === 0) return res.status(404).json({ message: "No jobs found for this employer" });
             return res.status(200).json(jobs);
         } catch (error) {
