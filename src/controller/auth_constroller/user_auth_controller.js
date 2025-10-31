@@ -150,15 +150,14 @@ static logoutUser = async (req, res) => {
                 portfolioUrl: portfolioUrl,
                 summary: summary,
                 hasMinimumRequirements: hasMinimumRequirements,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
+               
             };
             const validationResult = validateProfile(jobseekerProfile);
             if (validationResult.error) {
                 return res.status(400).json({ success: false, message: 'Invalid jobseeker profile data', error: validationResult.error.details[0].message });
             }
             const jobseekerProfileDoc = db.collection('jobSeekerProfiles').doc(id);
-            await jobseekerProfileDoc.set(jobseekerProfile, { merge: true });
+            await jobseekerProfileDoc.set({...jobseekerProfile, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }, { merge: true });
             const data = await this.getJobseekerProfile(req, res);
             return res.status(200).json({ success: true, message: 'Jobseeker profile updated successfully', data: data });
         } catch (error) {
