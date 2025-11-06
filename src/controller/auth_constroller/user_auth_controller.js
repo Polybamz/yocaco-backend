@@ -158,6 +158,9 @@ static logoutUser = async (req, res) => {
             }
             const jobseekerProfileDoc = db.collection('jobSeekerProfiles').doc(id);
             await jobseekerProfileDoc.set({...jobseekerProfile, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }, { merge: true });
+            // update profile complete flag in users collection
+            const userDoc = db.collection('users').doc(id);
+            await userDoc.update({ profileComplete: true });
             const data = await this.getJobseekerProfile(req, res);
             return res.status(200).json({ success: true, message: 'Jobseeker profile updated successfully', data: data });
         } catch (error) {

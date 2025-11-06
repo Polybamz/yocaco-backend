@@ -48,6 +48,8 @@ const articleSchema = Joi.object({
     status: Joi.string()
         .valid('draft', 'published', 'archived')
         .required(),
+    /// catigory
+   type: Joi.string().valid('tiib', 'coaching').required()
 });
 
 /**

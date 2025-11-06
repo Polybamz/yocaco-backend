@@ -4,7 +4,8 @@ const subscribtionSchema = Joi.object({
      plan: Joi.string().valid('basic', 'standard', 'premium').required(),
      startDate: Joi.date().required(),
      endDate: Joi.date().required(),
-     status: Joi.string().valid('active', 'inactive').required()
+     duration: Joi.number().required(),
+     status: Joi.string().valid('active', 'expired').required()
 });
 
 export default subscribtionSchema;

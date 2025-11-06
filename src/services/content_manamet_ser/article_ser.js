@@ -7,7 +7,7 @@ class ArticleSer {
         try {
             const articleRef = db.collection("articles").doc();
             const articleData = {
-               ...data,
+                ...data,
                 updatedAt: admin.firestore.FieldValue.serverTimestamp(),
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
             };
@@ -15,17 +15,17 @@ class ArticleSer {
             return articleRef.id;
         } catch (error) {
             console.log(error);
-           throw error;
+            throw error;
         }
     }
-     
+
     static async getAllArticles() {
         try {
             const articlesRef = db.collection("articles");
             const articlesDocs = await articlesRef.get();
             const articles = [];
             articlesDocs.forEach((doc) => {
-                articles.push({...doc.data(), id:doc.id});
+                articles.push({ ...doc.data(), id: doc.id });
             });
             return articles;
         } catch (error) {
@@ -40,7 +40,7 @@ class ArticleSer {
             const articlesDocs = await articlesRef.get();
             const articles = [];
             articlesDocs.forEach((doc) => {
-            articles.push({id:doc.id,...doc.data()});
+                articles.push({ id: doc.id, ...doc.data() });
             });
             return articles;
         } catch (error) {
@@ -106,6 +106,21 @@ class ArticleSer {
             console.log(error);
             return false;
         }
+    }
+    // get article by type;
+    static async getAllArticlesByType(type, status) {
+        try {
+            const articlesRef = db.collection("articles").where('type', '==', type);
+            const articlesDocs = await articlesRef.where('status', '==', status).get();
+            const articles = [];
+            articlesDocs.forEach((doc) => {
+                articles.push({ ...doc.data(), id: doc.id });
+            });
+            return articles;
+        } catch (er) {
+            throw Error(er)
+        }
+
     }
 }
 

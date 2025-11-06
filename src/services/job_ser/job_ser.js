@@ -131,7 +131,7 @@ class JobsService {
             return jobsSnapshot.size;
         } catch (error) {
             console.error("Error updating expired jobs status:", error);
-            throw new Error(error);
+           // throw  Error(error);
         }
    }
    // get jobs by status
@@ -146,7 +146,6 @@ class JobsService {
             return jobs;
         } catch (error) {
             console.error("Error fetching jobs by status:", error);
-            throw new Error(error);
         }
    }
 
