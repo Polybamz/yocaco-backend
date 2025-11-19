@@ -1,69 +1,63 @@
 import axios from "axios";
-import { v4 as uuidv4 } from "uuid";
 import dotenv from "dotenv";
 dotenv.config();
+const crypto = require('crypto');
 
-const {
-  MOMO_BASE_URL,
-  MOMO_SUBSCRIPTION_KEY,
-  MOMO_USER_ID,
-  MOMO_API_KEY,
-} = process.env;
-
-async function getAccessToken() {
-  const auth = Buffer.from(`${MOMO_USER_ID}:${MOMO_API_KEY}`).toString("base64");
-
-  const headers = {
-    "Authorization": `Basic ${auth}`,
-    "Ocp-Apim-Subscription-Key": MOMO_SUBSCRIPTION_KEY,
-  };
-
-  const res = await axios.post(`${MOMO_BASE_URL}/collection/token/`, {}, { headers });
-  return res.data.access_token;
-}
-
-export async function requestSubscriptionPayment({ amount, phoneNumber, planName }) {
-  const accessToken = await getAccessToken();
-  const referenceId = uuidv4();
-
-  const headers = {
-    "Authorization": `Bearer ${accessToken}`,
-    "X-Reference-Id": referenceId,
-    "X-Target-Environment": "sandbox",
-    "Ocp-Apim-Subscription-Key": MOMO_SUBSCRIPTION_KEY,
-    "Content-Type": "application/json",
-  };
-
-  const body = {
-    amount: amount.toString(),
-    currency: "XAF",
-    externalId: referenceId,
-    payer: {
-      partyIdType: "MSISDN",
-      partyId: phoneNumber,
+/* -------------------------------------------------
+   MTN MoMo helpers
+   ------------------------------------------------- */
+async function getMtnAccessToken() {
+  const { MTN_API_USER, MTN_API_KEY, MTN_BASE_URL } = process.env;
+  const auth = Buffer.from(`${MTN_API_USER}:${MTN_API_KEY}`).toString('base64');
+  const resp = await axios.post(`${MTN_BASE_URL}/token`, 'grant_type=client_credentials', {
+    headers: {
+      'Authorization': `Basic ${auth}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Ocp-Apim-Subscription-Key': process.env.MTN_SUBSCRIPTION_KEY,
     },
-    payerMessage: `Subscription for ${planName}`,
-    payeeNote: "Subscription Payment",
-  };
-
-  await axios.post(`${MOMO_BASE_URL}/collection/v1_0/requesttopay`, body, { headers });
-
-  return referenceId;
+  });
+  return resp.data.access_token;
 }
 
-export async function checkPaymentStatus(referenceId) {
-  const accessToken = await getAccessToken();
-
-  const headers = {
-    "Authorization": `Bearer ${accessToken}`,
-    "X-Target-Environment": "sandbox",
-    "Ocp-Apim-Subscription-Key": MOMO_SUBSCRIPTION_KEY,
-  };
-
-  const res = await axios.get(
-    `${MOMO_BASE_URL}/collection/v1_0/requesttopay/${referenceId}`,
-    { headers }
-  );
-
-  return res.data;
+// Verify MTN callback signature (optional but recommended)
+function verifyMtnSignature(body, receivedSig) {
+  const secret = process.env.MTN_API_KEY; // same key used for token request
+  const hmac = crypto.createHmac('sha256', secret);
+  hmac.update(JSON.stringify(body));
+  const computedSig = hmac.digest('hex');
+  return computedSig === receivedSig;
 }
+
+/* -------------------------------------------------
+   Orange Money helpers
+   ------------------------------------------------- */
+async function getOrangeAccessToken() {
+  const { ORANGE_CLIENT_ID, ORANGE_CLIENT_SECRET, ORANGE_BASE_URL } = process.env;
+  const auth = Buffer.from(`${ORANGE_CLIENT_ID}:${ORANGE_CLIENT_SECRET}`).toString('base64');
+  const resp = await axios.post(`${ORANGE_BASE_URL}/oauth/token`, 'grant_type=client_credentials', {
+    headers: {
+      'Authorization': `Basic ${auth}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+  });
+  return resp.data.access_token;
+}
+
+// Orange webhook signature verification (see Orange docs for exact algorithm)
+function verifyOrangeSignature(body, receivedSig) {
+  const secret = process.env.ORANGE_CLIENT_SECRET;
+  const hmac = crypto.createHmac('sha256', secret);
+  hmac.update(JSON.stringify(body));
+  const computedSig = hmac.digest('base64');
+  return computedSig === receivedSig;
+}
+
+/* -------------------------------------------------
+   Export
+   ------------------------------------------------- */
+export {
+  getMtnAccessToken,
+  verifyMtnSignature,
+  getOrangeAccessToken,
+  verifyOrangeSignature,
+};

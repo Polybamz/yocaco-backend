@@ -64,17 +64,22 @@
 
 import express from 'express';
 import PaymentService from '../../services/payment/payment_ser.js';
+import subscription_ser from '../../services/subscription_ser/subscription_ser.js';
 
 const router = express.Router();
 const paymentService = new PaymentService();
 
 
+
 // Initiate Payment
 
 router.post('/initiate-payment', async (req, res) => {
-  const { type, paymentData, meta } = req.body;
+  const { type, paymentData, meta, subsData } = req.body;
+  console.log(subsData);
   const response = await paymentService.initiatePayment(type, paymentData, meta);
-  res.status(200).json(response);
+await subscription_ser.createSubscription(subsData);
+
+  res.status(200).json({ message: 'Payment initiated successfully', response });
 });
 router.post('/webhook/flutterwave', (req, res) =>
   paymentService.handleWebhook(req, res)

@@ -13,8 +13,6 @@ router.get('/get-job-by-employer-id/:id', JobController.getJobByEmployerId);
 router.get('/get-job-by-status/:status', JobController.getJobsByStatus);
 // Schedule a job every 2 hours to update expired jobs status
 const job = scheduleJob('*/2 * * * *', async () => {
-    console.log('Running scheduled job to update expired jobs status');
     const result = await JobsService.updateExpiredJobsStatus();
-    console.log(`Scheduled job completed. Updated ${result.length} jobs.`);
 });
 export default router;

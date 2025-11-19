@@ -5,7 +5,8 @@ const subscribtionSchema = Joi.object({
      startDate: Joi.date().required(),
      endDate: Joi.date().required(),
      duration: Joi.number().required(),
-     status: Joi.string().valid('active', 'expired').required()
+     status: Joi.string().valid('active', 'expired','pending').default('pending'),
+      transactionId: Joi.string().required(),
 });
 
 export default subscribtionSchema;
