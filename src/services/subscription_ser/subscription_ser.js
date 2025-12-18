@@ -40,15 +40,30 @@ class SubscriptionService {
     }
     /// get subscription by employerId
 
-    static async getSubscriptionByEmployerId (employerId) {
-        try {
-            const subdRef = db.collection("subscription").where('employerId', '==', employerId).get();
-            return subdRef
-        } catch (error){
-            throw new Error(error.details[0].message)
+  // ...existing code...
+    static async getSubscriptionByEmployerId(employerId) {
+        if (!employerId) {
+            throw new Error('employerId is required');
         }
+        try {
+            const snapshot = await db
+                .collection('subscriptions')
+                .where('employerId', '==', employerId)
+                .where('status', '==', 'active')
+                .get();
 
+            if (snapshot.empty) {
+                return [];
+            }
+
+            const subscriptions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            return subscriptions;
+        } catch (error) {
+            console.error('Error fetching subscription by employerId:', error);
+            throw new Error(error && error.message ? error.message : String(error));
+        }
     }
+// ...existing code...
 
     static async updateSubscription(id, data) {
         try {

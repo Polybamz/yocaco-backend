@@ -10,6 +10,10 @@ router.post('/subscribe', SubscriptionController.createSubscription)
 // get subscription
 
 router.get('/subscription', SubscriptionController.getAllSubscriptions)
+/// get subscription by employer id
+
+router.get('/emloyer-subscription/:employerId', SubscriptionController.getSubscriptionByEmployerId)
+// update subscription
 // update subscription status
 
 // delet subscription

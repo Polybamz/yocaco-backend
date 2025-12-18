@@ -112,6 +112,29 @@ class SubscriptionController {
         // update status 
         static async updateStatus(req, res) {}
 
+        /// get subscription by employerId
+    static async getSubscriptionByEmployerId(req, res) {
+        try {
+            const employerId = req.params.employerId;
+            const subscriptions = await SubscriptionService.getSubscriptionByEmployerId(employerId);
+            if (subscriptions.length > 0) {
+                res.status(200).json({
+                    message: "Subscription fetched successfully",
+                    subscriptions
+                });
+            } else {
+                res.status(404).json({
+                    message: "Subscription not found"
+                });
+            }
+        } catch (error) {
+            res.status(500).json({
+                message: "Error fetching subscription",
+                error
+            });
+        }
+    }
+
         
         
 }
