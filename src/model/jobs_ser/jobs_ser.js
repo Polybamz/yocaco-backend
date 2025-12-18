@@ -17,6 +17,7 @@ import Joi from "joi";
         employerId: Joi.string().allow(null,'',""),
         boosted: Joi.boolean().allow(null),
         boostedUntil: Joi.date().allow(null),
+        transactionId: Joi.string().allow(null)
     });
 
     const validateJob = (job) => {

@@ -86,6 +86,18 @@ static async getJobsByStatus(req, res) {
         return res.status(500).json({ message: "Internal Server Error" });
     }
 }
+
+static async getJobAnalytics(req, res) {
+    try {
+        const { id } = req.params;
+        console.log("Getting job analytics for employer ID:", id);
+        const analytics = await JobsService.getJobAnalytics(id);
+        if (!analytics) return res.status(404).json({ message: "No analytics found for this employer" });
+        return res.status(200).json(analytics);
+    } catch (error) {
+        return res.status(500).json({ message: "Internal Server Error" });
+    }
+}
 }
 
 export default JobController;

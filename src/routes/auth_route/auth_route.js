@@ -17,6 +17,17 @@ router.delete('/delete-user/:uid', userAuthController.deleteAcount);
 router.get('/experience-distribution', userAuthController.getExperienceDistribution);
 // create profile
 router.post('/create-jobseeker-profile/:id',  userAuthController.createOrUpdateJobseekerProfile);
+// get user by id
+router.get('/get-user-by-id/:id', async (req,res)=> {
+    try{
+        const {uuid} = req.params
+     const user = await userAuthController.getUserById(uuid)
+      return res.status(200).json({success:true,user})
+    } catch (er){
+        console.log(er)
+        return res.status(400).json({success:false, error})
+    }
+})
 
 // router.put('/updateUser/:id', userAuthController.updateUser);
 

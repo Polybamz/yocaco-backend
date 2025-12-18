@@ -1,5 +1,7 @@
 import subscribtionSchema from "../../model/subscribtion_model/subscribtion_model.js";
 import { db, admin } from "../../config/config.js";
+import userAuthController from '../../controller/auth_constroller/user_auth_controller.js';
+import { sendMail } from "../../../utils.js";
 
 class SubscriptionService {
     static async createSubscription(data) {
@@ -13,14 +15,16 @@ class SubscriptionService {
             value.endDate = value.endDate.toISOString();
             const subscriptionRef = db.collection("subscriptions").doc();
             await subscriptionRef.set(value);
+           const user = await userAuthController.getUserById(value.employerId)
+            
             //await this.updateUserSubscriptionStatus(data.employerId, true);
-            return subscriptionRef.id;
+            return user;
         } catch (error) {
             console.log(error);
             throw new Error(error.details[0].message);
         }
     }
-
+/// get subscription
     static async getSubscription(id) {
         try {
             const subscriptionRef = db.collection("subscriptions").doc(id);
@@ -33,6 +37,17 @@ class SubscriptionService {
             console.log(error);
             throw new Error(error.details[0].message);
         }
+    }
+    /// get subscription by employerId
+
+    static async getSubscriptionByEmployerId (employerId) {
+        try {
+            const subdRef = db.collection("subscription").where('employerId', '==', employerId).get();
+            return subdRef
+        } catch (error){
+            throw new Error(error.details[0].message)
+        }
+
     }
 
     static async updateSubscription(id, data) {
