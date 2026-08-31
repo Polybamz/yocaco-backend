@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import authRoute from './src/routes/auth_route/auth_route.js';
 import adminAuthRoute from './src/routes/admin_route/admin_auth_route.js';
 import jobsRouter from './src/routes/jobs_route/jobs_route.js';
+// userRouter is the same auth router, mounted under /api/user for the admin dashboard
 import userRouter from './src/routes/auth_route/auth_route.js';
 import articleRouter from './src/routes/article_route/article_route.js';
 import paymentRoute from './src/controller/payment_controller/p_controller.js';
@@ -12,14 +13,25 @@ import bannerRouter from './src/routes/contenct_management/bannar_route.js';
 import mvcRouter from './src/routes/contenct_management/mission_vision_route.js'
 import cloudinaryRouter from './src/routes/cloudinary_route/cloudinary_route.js'
 import subsRoute from './src/routes/susbscription_route/subscription_route.js'
+import newsletterRoute from './src/routes/newsletter_route/newsletter_route.js'
+import messagesRoute from './src/routes/messages_route/messages_route.js'
+import contactRoute from './src/routes/contact_route/contact_route.js'
 const app = express();
 dotenv.config();
 const PORT = process.env.PORT || 5000;
-app.use(cors(
-  {
-    origin: '*'
-  }
-));
+
+const corsOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+if (corsOrigins.length === 0) {
+  console.warn('⚠️  CORS_ORIGINS is not set — falling back to permissive CORS. Set it to your frontend domains in production.');
+}
+
+app.use(cors({
+  origin: corsOrigins.length > 0 ? corsOrigins : '*',
+}));
 app.use(express.json());
 
 app.get('/', (req, res) => {
@@ -36,6 +48,9 @@ app.use('/api/banner', bannerRouter);
 app.use('/api/mvc', mvcRouter);
 app.use('/api/cloudinary', cloudinaryRouter);
 app.use('/api/subscription', subsRoute)
+app.use('/api/newsletter', newsletterRoute)
+app.use('/api/messages', messagesRoute)
+app.use('/api/contact', contactRoute)
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });

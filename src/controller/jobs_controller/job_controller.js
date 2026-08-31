@@ -98,6 +98,27 @@ static async getJobAnalytics(req, res) {
         return res.status(500).json({ message: "Internal Server Error" });
     }
 }
+static async getJobSuggestionsForSeeker(req, res) {
+         try {
+             const userId = req.user.uid;
+             const suggestions = await JobsService.getJobSuggestionsForSeeker(userId);
+             return res.status(200).json(suggestions);
+         } catch (error) {
+             console.error('Error in getJobSuggestionsForSeeker controller:', error);
+             return res.status(500).json({ message: 'Internal Server Error' });
+         }
+     }
 }
+
+static async getJobSeekersForEmployer(req, res) {
+        try {
+            const employerId = req.user.uid;
+            const jobSeekers = await JobsService.getJobSeekersForEmployer(employerId);
+            return res.status(200).json(jobSeekers);
+        } catch (error) {
+            console.error('Error in getJobSeekersForEmployer controller:', error);
+            return res.status(500).json({ message: 'Internal Server Error' });
+        }
+    }
 
 export default JobController;

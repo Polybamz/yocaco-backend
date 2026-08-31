@@ -1,5 +1,7 @@
 import {db , admin} from '../../config/config.js';
 import validateProfile from '../../model/profile_models/js-model.js';
+import { verifyPassword } from '../../services/auth/auth_ser.js';
+import { signToken } from '../../middleware/auth.js';
 
 // interface AuthUser {
 //   uid: string;
@@ -11,9 +13,14 @@ import validateProfile from '../../model/profile_models/js-model.js';
 
 
 class userAuthController  {
-   static createUser = async (req, res) => {
+      static createUser = async (req, res) => {
     try {
+        console.log('Request body:', req.body);
         const { email, password, name, userType } = req.body;
+        if (!email || !password || !name || !userType) {
+            console.log('Validation failed: missing fields', { email, password, name, userType });
+            return res.status(400).json({ message: 'Email, password, name and userType are required' });
+        }
         const user = await admin.auth().createUser({
             email: email,
             password: password,
@@ -30,30 +37,59 @@ class userAuthController  {
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
         };
-        await docRef.set(doc);
-        const token = await admin.auth().createCustomToken(user.uid);
+        try {
+            await docRef.set(doc);
+        } catch (firestoreError) {
+            // Don't leave an auth user behind if the profile row fails to persist
+            await admin.auth().deleteUser(user.uid).catch(() => {});
+            throw firestoreError;
+        }
+        const token = signToken({ uid: user.uid, email, name, userType });
        const data = await this.getUserById(user.uid);
         return res.status(201).json({ message: 'User created successfully', token: token, user: data });
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({ message: 'Error creating user', error: error.message });
+        console.log('Register failed:', error.code, '-', error.message);
+        const firebaseErrors = {
+            'auth/email-already-exists': { status: 409, message: 'An account with this email already exists. Please sign in instead.' },
+            'auth/invalid-email': { status: 400, message: 'That email address is not valid.' },
+            'auth/weak-password': { status: 400, message: 'Password should be at least 6 characters.' },
+            'auth/invalid-password': { status: 400, message: 'Password should be at least 6 characters.' },
+            'auth/missing-password': { status: 400, message: 'Password is required.' },
+            'auth/too-many-requests': { status: 429, message: 'Too many attempts. Please try again in a moment.' },
+            'auth/operation-not-allowed': { status: 503, message: 'Email/password sign-up is not enabled for this Firebase project.' },
+            'auth/internal-error': { status: 502, message: 'The authentication service is temporarily unavailable. Please try again.' },
+        };
+        const mapped =
+            firebaseErrors[error.code] ||
+            (typeof error.message === 'string' && /password/i.test(error.message)
+                ? { status: 400, message: error.message }
+                : { status: 500, message: 'Error creating user' });
+        return res.status(mapped.status).json({ message: mapped.message, error: error.message });
     }
    }
 
 static loginUser = async (req, res) => {
     try {
         const { email, password } = req.body;
-        const userRecord = await admin.auth().getUserByEmail(email);
-        // const user = await admin.auth().verifyPassword(userRecord.uid, password);
-        // if (!user) {
-        //     return res.status(401).json({ message: 'Invalid credentials' });
-        // }
-        const data = await this.getUserById(userRecord.uid);
-        const token = await admin.auth().createCustomToken(userRecord.uid);
+        if (!email || !password) {
+            return res.status(400).json({ message: 'Email and password are required' });
+        }
+        // Verify the password against Firebase Auth (never trust the client)
+        const authResult = await verifyPassword(email, password);
+        const data = await this.getUserById(authResult.localId);
+        if (!data) {
+            return res.status(404).json({ message: 'User account not found' });
+        }
+        const token = signToken({
+            uid: data.uuid || authResult.localId,
+            email: data.email,
+            name: data.name,
+            userType: data.userType,
+        });
         return res.status(200).json({ token: token, user: data });
     } catch (error) {
-        console.log(error);
-        return res.status(500).json({ message: 'Error logging in', error: error.message });
+        const status = error.status || 500;
+        return res.status(status).json({ message: error.message || 'Error logging in' });
     }
 }
 
@@ -71,17 +107,9 @@ static getUserById = async (uid) => {
     }
 }
 static logoutUser = async (req, res) => {
-    try {
-        const token = req.headers.authorization?.split(' ')[1];
-        if (!token) {
-            return res.status(401).json({ message: 'No token provided' });
-        }
-        await admin.auth().revokeRefreshTokens(token);
-        return res.status(200).json({ message: 'User logged out successfully' });
-    } catch (error) {
-        console.log(error);
-        return res.status(500).json({ message: 'Error logging out', error: error.message });
-    }
+    // Session tokens are stateless JWTs; logout is handled client-side by
+    // discarding the token. Nothing to invalidate server-side in P0.
+    return res.status(200).json({ message: 'User logged out successfully' });
 }
 
    static verifyToken = async (req, res, next) => {

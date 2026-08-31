@@ -1,21 +1,38 @@
 import  {admin, db} from '../../config/config.js';
+import { verifyPassword } from '../../services/auth/auth_ser.js';
+import { signToken } from '../../middleware/auth.js';
 
 
 class AdminAuthController {
    static async login(req, res) {
-        const { email, password } = req.body;
-        console.log(email, password);
+        try {
+            const { email, password } = req.body;
+            if (!email || !password) {
+                return res.status(400).json({ message: 'Email and password are required' });
+            }
 
-        const user = await admin.auth().getUserByEmail(email);
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+            // Verify the password against Firebase Auth (never trust the client)
+            const authResult = await verifyPassword(email, password);
+            const uid = authResult.localId;
+
+            const data = await AdminAuthController.getAdminUserById(uid);
+            if (!data) {
+                return res.status(404).json({ message: 'Admin user not found' });
+            }
+
+            const token = signToken({
+                uid,
+                email: data.email,
+                fullName: data.fullName,
+                role: data.role,
+                isAdmin: true,
+            });
+
+            return res.status(200).json({ token: token, user: data });
+        } catch (error) {
+            const status = error.status || 500;
+            return res.status(status).json({ message: error.message || 'Internal server error' });
         }
-        
-        
-        const token = await admin.auth().createCustomToken(user.uid);
-        const data = await AdminAuthController.getAdminUserById(user.uid);
-      
-        return res.status(200).json({ token:token, user: data });
     }
     static async createAdminUser(req, res) {
     const { email, password, role, fullName,  } = req.body;

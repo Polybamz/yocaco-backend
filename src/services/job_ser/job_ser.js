@@ -100,17 +100,16 @@ class JobsService {
     // update status of job by id
     static async updateJobStatus(jobId, status) {
         try {
-            const currentDate = Date()
             const jobRef = db.collection('jobs').doc(jobId);
-              const jobDoc = await jobRef.get();
-              if (!jobDoc.exists) {
-                    return null;
-                }
-               const job = jobRef.data()
-               const boostedUntil = null
-               if(job.boosted){
-                  boostedUntil = new Date(currentDate.getTime() + job.boosted * 24 * 60 * 60 * 1000).toISOString();
-               }
+            const jobDoc = await jobRef.get();
+            if (!jobDoc.exists) {
+                return null;
+            }
+            const job = jobDoc.data();
+            let boostedUntil = null;
+            if (job.boosted) {
+                boostedUntil = new Date(new Date().getTime() + job.boosted * 24 * 60 * 60 * 1000).toISOString();
+            }
             await jobRef.update({
                 status,
                 boostedUntil,
@@ -206,6 +205,207 @@ class JobsService {
 
 //
 // Analytics functions
+static async getJobSuggestionsForSeeker(userId) {
+         try {
+             // Get the job seeker's profile
+             const seekerProfileDoc = await db.collection('jobSeekerProfiles').doc(userId).get();
+             if (!seekerProfileDoc.exists) {
+                 // If no profile found, return empty array
+                 return [];
+             }
+             const seekerProfile = seekerProfileDoc.data();
+
+             // Extract seeker's skills, experience, location
+             let seekerSkills = [];
+             if (seekerProfile.skills) {
+                 seekerSkills = seekerProfile.skills
+                     .split(',')
+                     .map(skill => skill.trim().toLowerCase())
+                     .filter(skill => skill.length > 0);
+             }
+             const seekerExperience = seekerProfile.experience || ''; // e.g., '5-7', '8-10'
+             const seekerLocation = seekerProfile.location ? seekerProfile.location.toLowerCase() : '';
+
+             // Get all approved jobs
+             const jobsSnapshot = await db.collection('jobs').where('status', '==', 'approved').get();
+             if (jobsSnapshot.empty) {
+                 return [];
+             }
+
+             const suggestedJobs = [];
+             jobsSnapshot.forEach(doc => {
+                 const job = { ...doc.data(), id: doc.id };
+
+                 // Skip if job doesn't have required fields we need for matching
+                 if (!job.title) return;
+
+                 let match = false;
+
+                 // 1. Location matching (if seeker has location and job has location)
+                 if (seekerLocation && job.location) {
+                     const jobLocation = job.location.toLowerCase();
+                     if (jobLocation === seekerLocation) {
+                         match = true;
+                     }
+                 }
+                 // If seeker has no location, we don't filter by location (show all)
+
+                 // 2. Skills matching
+                 if (seekerSkills.length > 0) {
+                     let skillsMatch = false;
+                     // Check if job has requiredSkills as string
+                     if (job.requiredSkills && typeof job.requiredSkills === 'string') {
+                         const jobSkillsLower = job.requiredSkills.toLowerCase();
+                         seekerSkills.forEach(skill => {
+                             if (jobSkillsLower.includes(skill)) {
+                                 skillsMatch = true;
+                             }
+                         });
+                     }
+                     // Check if job has requiredSkills as array
+                     else if (job.requiredSkills && Array.isArray(job.requiredSkills)) {
+                         const jobSkillsLower = job.requiredSkills.map(skill => 
+                             typeof skill === 'string' ? skill.toLowerCase() : ''
+                         );
+                         seekerSkills.forEach(skill => {
+                             if (jobSkillsLower.includes(skill)) {
+                                 skillsMatch = true;
+                             }
+                         });
+                     }
+                     // If no requiredSkills field, we can't match by skills
+                     else {
+                         skillsMatch = false;
+                     }
+
+                     // If seeker has skills but no match, skip this job
+                     if (!skillsMatch) {
+                         return;
+                     }
+                     // If we got here, skills matched
+                     match = true;
+                 }
+                 // If seeker has no skills, we don't filter by skills
+
+                 // 3. Experience matching (optional, skip for now)
+                 // We could add experience matching here if we have a standard format
+
+                 // If we have a match (by location and/or skills, or if no filters are applied), add to suggestions
+                 if (match || (seekerSkills.length === 0 && (!seekerLocation || !job.location))) {
+                     suggestedJobs.push(job);
+                 }
+             });
+
+             // Sort by boosted descending (if available) or by createdAt descending
+             suggestedJobs.sort((a, b) => {
+                 const boostedA = a.boosted || 0;
+                 const boostedB = b.boosted || 0;
+                 if (boostedA !== boostedB) {
+                     return boostedB - boostedA;
+                 }
+                 const dateA = new Date(a.createdAt || 0);
+                 const dateB = new Date(b.createdAt || 0);
+                 return dateB - dateA;
+             });
+
+             // Limit to 10 suggestions
+             return suggestedJobs.slice(0, 10);
+         } catch (error) {
+             console.error('Error in getJobSuggestionsForSeeker:', error);
+             throw error;
+         }
+     }
+// Get job seekers for an employer based on their jobs
+    static async getJobSeekersForEmployer(employerId) {
+        try {
+            // Get the employer's approved jobs (limit to 5 to avoid too much processing)
+            const jobsSnapshot = await db.collection('jobs')
+                .where('employerId', '==', employerId)
+                .where('status', '==', 'approved')
+                .limit(5)
+                .get();
+
+            if (jobsSnapshot.empty) {
+                return []; // No jobs, no suggestions
+            }
+
+            // Fetch a batch of job seeker profiles (we'll limit to 100 for performance)
+            const jobSeekersSnapshot = await db.collection('jobSeekerProfiles').limit(100).get();
+            if (jobSeekersSnapshot.empty) {
+                return [];
+            }
+
+            // We'll store job seekers by their uid to avoid duplicates
+            const jobSeekerMatches = new Map(); // key: uid, value: { profile, matchCount }
+
+            jobsSnapshot.forEach(jobDoc => {
+                const job = jobDoc.data();
+                // Normalize job location and skills for matching
+                const jobLocation = job.location ? job.location.toLowerCase() : null;
+                let jobSkills = [];
+                if (job.requiredSkills) {
+                    if (typeof job.requiredSkills === 'string') {
+                        jobSkills = job.requiredSkills
+                            .split(',')
+                            .map(skill => skill.trim().toLowerCase())
+                            .filter(skill => skill.length > 0);
+                    } else if (Array.isArray(job.requiredSkills)) {
+                        jobSkills = job.requiredSkills
+                            .map(skill => typeof skill === 'string' ? skill.trim().toLowerCase() : '')
+                            .filter(skill => skill.length > 0);
+                    }
+                }
+
+                jobSeekersSnapshot.forEach(seekerDoc => {
+                    const seeker = seekerDoc.data();
+                    const seekerUid = seekerDoc.id;
+
+                    // Skip if we don't have a uid (shouldn't happen)
+                    if (!seekerUid) return;
+
+                    // Get current match count for this seeker
+                    const current = jobSeekerMatches.get(seekerUid) || { profile: seeker, matchCount: 0 };
+
+                    // Check location match
+                    let locationMatch = true;
+                    if (jobLocation) {
+                        const seekerLocation = seeker.location ? seeker.location.toLowerCase() : null;
+                        locationMatch = (seekerLocation === jobLocation);
+                    }
+
+                    // Check skills match
+                    let skillsMatch = true;
+                    if (jobSkills.length > 0) {
+                        const seekerSkillsStr = seeker.skills || '';
+                        const seekerSkills = seekerSkillsStr
+                            .split(',')
+                            .map(skill => skill.trim().toLowerCase())
+                            .filter(skill => skill.length > 0);
+                        skillsMatch = jobSkills.some(jobSkill => seekerSkills.includes(jobSkill));
+                    }
+
+                    // If both location and skills match, then this job is a match for the seeker
+                    if (locationMatch && skillsMatch) {
+                        current.matchCount += 1;
+                        jobSeekerMatches.set(seekerUid, current);
+                    }
+                });
+            });
+
+            // Convert the map to an array and sort by matchCount descending
+            const jobSeekersArray = Array.from(jobSeekerMatches.values())
+                .filter(item => item.matchCount > 0) // Only include those with at least one match
+                .sort((a, b) => b.matchCount - a.matchCount)
+                .slice(0, 10) // Top 10
+                .map(item => item.profile);
+
+            return jobSeekersArray;
+        } catch (error) {
+            console.error('Error in getJobSeekersForEmployer:', error);
+            throw error;
+        }
+    }
+
 static  getJobAnalytics = async (employerId) => {
   try {
     const jobs = await this.getJobByEmployerId(employerId || '');
@@ -273,3 +473,4 @@ static  getJobAnalytics = async (employerId) => {
 }
 
 export default JobsService;
+APPENDED_MARKER

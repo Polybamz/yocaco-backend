@@ -107,11 +107,14 @@ class ArticleSer {
             return false;
         }
     }
-    // get article by type;
+    // get articles by type; status is optional
     static async getAllArticlesByType(type, status) {
         try {
-            const articlesRef = db.collection("articles").where('type', '==', type);
-            const articlesDocs = await articlesRef.where('status', '==', status).get();
+            let query = db.collection("articles").where('type', '==', type);
+            if (status) {
+                query = query.where('status', '==', status);
+            }
+            const articlesDocs = await query.get();
             const articles = [];
             articlesDocs.forEach((doc) => {
                 articles.push({ ...doc.data(), id: doc.id });

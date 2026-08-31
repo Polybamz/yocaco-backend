@@ -79,7 +79,7 @@ class SubscriptionService {
             await subscriptionRef.update(data);
             return subscriptionRef.id;
         } catch (er) {
-            consol.log(er)
+            console.log(er)
             throw Error(er)
         }
     }
@@ -111,10 +111,11 @@ class SubscriptionService {
     }
     // update status based on enddate
     static async updateExpiredSubscrition() {
-        const currentDate = Date()
+        const currentDate = new Date()
         try {
             const subsSnapshot = await db.collection('subscriptions').where('status', '==', 'active').get();
             const batch = db.batch();
+            const userUpdates = [];
             subsSnapshot.forEach((doc) => {
                 const subs = doc.data();
                 const subsDate = new Date(subs.endDate);
@@ -122,11 +123,15 @@ class SubscriptionService {
                 if (subsDate < currentDate) {
                     const subsRef = db.collection('subscriptions').doc(id);
                     batch.update(subsRef, { status: 'expired', updatedAt: new Date().toISOString() });
-                    this.updateUserSubscriptionStatus(id, false)
+                    userUpdates.push(
+                        this.updateUserSubscriptionStatus(subs.employerId, false)
+                            .catch(err => console.error('Error updating user subscription status:', err.message))
+                    );
                 }
             })
             // return number of updated jobs
             await batch.commit();
+            await Promise.all(userUpdates);
            return subsSnapshot.size;
         } catch (er) {
             console.error("Error updating expired subs status:", er);

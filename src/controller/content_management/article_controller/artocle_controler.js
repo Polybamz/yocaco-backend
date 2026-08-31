@@ -141,6 +141,25 @@ class ArtcleController {
         }
     }
 
+    // get articles by type (e.g. tiib / coaching); optional ?status= filter
+    static async getArticlesByType(req, res){
+        try{
+            const {type} = req.params
+            const {status} = req.query
+            const result = await ArticleSer.getAllArticlesByType(type, status || undefined)
+            res.status(200).json({
+                success: true,
+                message: "Articles found",
+                data: result
+            })
+        } catch (er){
+            res.status(400).json({
+                success: false,
+                message: er.message
+            })
+        }
+    }
+
     // update article status by id
     static async updateArticleStatus(req, res){
         try{

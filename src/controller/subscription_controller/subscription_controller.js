@@ -82,7 +82,7 @@ class SubscriptionController {
                 message: "Error updating subscription",
                 error
             });
-        }z
+        }
     }
     // update user subscription
     static async updateUserSubscription(req, res) {

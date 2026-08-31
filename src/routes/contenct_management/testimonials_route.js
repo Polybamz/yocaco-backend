@@ -1,13 +1,15 @@
 import express from 'express';
 import TestimonialController from '../../controller/content_management/testiminials_controller/testimonials_controller.js';
+import { protect } from '../../middleware/auth.js';
 const router = express.Router();
 
-
-
-router.post('/create-testimonials', TestimonialController.addTestimonial);
+/// public read
 router.get('/get-testimonials', TestimonialController.getTestimonials);
-router.delete('/delete-testimonials/:id', TestimonialController.deleteTestimonials)
-router.put('/update-testimonials/:id', TestimonialController.updateTestimonials);
+
+/// authenticated mutations
+router.post('/create-testimonials', protect, TestimonialController.addTestimonial);
+router.delete('/delete-testimonials/:id', protect, TestimonialController.deleteTestimonials)
+router.put('/update-testimonials/:id', protect, TestimonialController.updateTestimonials);
 
 
 export default router;
