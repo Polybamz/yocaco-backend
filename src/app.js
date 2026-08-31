@@ -5,3 +5,7 @@ const app = new Hono();
 app.use(cors({ origin: "*" }));
 app.get("/", (c) => c.text("Welcome to yocaco backend"));
 app.get("/health", (c) => c.json({ status: "ok", service: "yocaco-backend", timestamp: new Date().toISOString() }));
+app.get("/api/jobs/getAllJobs", (c) => JobController.getAllJobs({ body: {}, params: {}, query: c.req.query() }, { status: (s) => ({ json: (d) => c.json(d, s) }) }));
+app.get("/api/jobs/get-job-by-employer-id/:id", (c) => JobController.getJobByEmployerId({ params: { id: c.req.param("id") } }, { status: (s) => ({ json: (d) => c.json(d, s) }) }));
+app.get("/api/jobs/get-job-suggestions-for-seeker", (c) => JobController.getJobSuggestionsForSeeker({ user: { uid: c.req.header("authorization") || "" } }, { status: (s) => ({ json: (d) => c.json(d, s) }) }));
+export default app;
