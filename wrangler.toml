@@ -30,7 +30,7 @@
 # ============================================================
 
 name = "yocaco-backend"
-main = "index.js"
+main = "worker_main.js"
 compatibility_date = "2024-12-01"
 compatibility_flags = ["nodejs_compat"]
 
