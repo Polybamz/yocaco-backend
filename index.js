@@ -53,4 +53,4 @@ app.use('/api/messages', messagesRoute)
 app.use('/api/contact', contactRoute)
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
-});
+});app.get("/health", (req, res) => res.json({ status: "ok", service: "yocaco-backend", timestamp: new Date().toISOString() }));
