@@ -108,7 +108,6 @@ static async getJobSuggestionsForSeeker(req, res) {
              return res.status(500).json({ message: 'Internal Server Error' });
          }
      }
-}
 
 static async getJobSeekersForEmployer(req, res) {
         try {
@@ -122,3 +121,5 @@ static async getJobSeekersForEmployer(req, res) {
     }
 
 export default JobController;
+
+
