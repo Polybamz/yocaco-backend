@@ -20,7 +20,7 @@ const app = express();
 dotenv.config();
 const PORT = process.env.PORT || 5000;
 
-const corsOrigins = (process.env.CORS_ORIGINS || '')
+const corsOrigins = (process.env.CORS_ORIGINS || 'https://yocaco.yourcareercompanion.workers.dev')
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
