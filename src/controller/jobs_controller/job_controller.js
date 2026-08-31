@@ -120,6 +120,8 @@ static async getJobSeekersForEmployer(req, res) {
         }
     }
 
+}
+
 export default JobController;
 
 
