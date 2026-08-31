@@ -30,7 +30,7 @@ if (corsOrigins.length === 0) {
 }
 
 app.use(cors({
-  origin: corsOrigins.length > 0 ? corsOrigins : '*',
+  origin: '*',
 }));
 app.use(express.json());
 
