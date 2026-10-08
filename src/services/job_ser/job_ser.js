@@ -473,4 +473,3 @@ static  getJobAnalytics = async (employerId) => {
 }
 
 export default JobsService;
-APPENDED_MARKER
